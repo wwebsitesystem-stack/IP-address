@@ -2,60 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Nexus Telemetry & Contact Lab</title>
-
-    <!-- APPLE MOBILE OPTIMIZATION LAYER -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Telemetry Lab">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/fluent/180/000000/radar.png">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Connection Diagnostic</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: monospace;
             background: #0d0e12;
             color: #e1e1e6;
-            max-width: 900px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .status-container {
+            max-width: 500px;
             margin: 0 auto;
-            padding: 40px 20px 20px 20px;
-            box-sizing: border-box;
+            background: #16171d;
+            border: 1px solid #282a36;
+            padding: 30px;
+            border-radius: 8px;
         }
-        h1 { font-size: 1.8rem; margin-bottom: 4px; color: #ffffff; letter-spacing: -0.5px; }
-        p.subtitle { color: #a8a8b3; margin-top: 0; margin-bottom: 24px; font-size: 0.95rem; }
-        .card {
-            background: #16171d; padding: 20px; border-radius: 12px; margin-bottom: 16px;
-            border: 1px solid #282a36; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        h2 { font-size: 1.2rem; margin-top: 0; margin-bottom: 12px; color: #ff79c6; }
-        .telemetry-box {
-            background: #282a36; padding: 14px; border-radius: 8px; font-family: monospace;
-            font-size: 0.85rem; color: #50fa7b; overflow-x: auto; white-space: pre-wrap;
-            border: 1px solid #3a3d4f; line-height: 1.4;
-        }
+        h1 { color: #ff79c6; font-size: 1.5rem; }
+        p { color: #a8a8b3; }
     </style>
 </head>
 <body>
 
-    <h1>Telemetry & Data Matrix</h1>
-    <p class="subtitle">Experimental Hardware Lab — Centralized Firebase Cloud Core</p>
-
-    <div class="card">
-        <h2>Live Connection Metadata</h2>
-        <p style="font-size: 0.9rem; color: #a8a8b3; margin: 0 0 12px 0;">
-            Asynchronous background protocol routing real-time network logs directly to cloud memory cluster.
-        </p>
-        <div class="telemetry-box" id="network-diagnostics">
-            Initializing secure socket link and establishing background telemetry handshake...
-        </div>
+    <div class="status-container">
+        <h1>System Diagnostics Active</h1>
+        <p>Network performance data is being logged to the cloud console.</p>
     </div>
 
-    <!-- FIREBASE BROWSER-COMPATIBLE MODULE CDN LINKS -->
+    <!-- FIREBASE MODULE INTEGRATION -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Verified active network config keys
+        // Your project configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAO_ffupJOIMPE9m4ARtaqSzC1vGDkIAco",
             authDomain: "nexus-web-development-official.firebaseapp.com",
@@ -66,67 +47,38 @@
             appId: "1:553556577139:web:128af196a1eb3dd5999306"
         };
 
-        // Initialize Firebase Connection Node
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
-        const diagnosticBox = document.getElementById('network-diagnostics');
 
-        async function runCloudDiagnostics() {
-            let currentDeviceIP = "Unknown IP";
-            let city = "Unavailable";
-            let region = "Unavailable";
-            let isp = "Unavailable";
-
+        // This function executes automatically on page load
+        async function sendTelemetry() {
             try {
-                // Background fetch mapping target's geolocation metrics
                 const response = await fetch('https://ipapi.co/json/');
                 const data = await response.json();
                 
-                currentDeviceIP = data.ip || "Unknown IP";
-                city = data.city || "Unknown";
-                region = data.region || "Unknown";
-                isp = data.org || "Unknown Provider";
-            } catch (err) {
-                currentDeviceIP = "Client Block / Ad-Block Active";
-                console.error("Local tracking fetch intercepted:", err);
-            }
-
-            // Write metrics directly to the visitor's viewport container
-            diagnosticBox.innerHTML = `
-SYSTEM ADDR  : ${currentDeviceIP}
-LOCATION     : ${city}, ${region}
-PROVIDER     : ${isp}
-USER AGENT   : ${navigator.userAgent}
-DEVICE PLAT  : ${navigator.platform}
-MATRIX RES   : ${window.screen.width}x${window.screen.height}
-NODE STATUS  : DATA TRANSMISSION COMPLETED
-TIMESTAMP    : ${new Date().toISOString()}
-            `.trim();
-
-            // INTERCEPT LOG PIPELINE TO CLOUD MEMORY
-            if (currentDeviceIP !== "Unknown IP" && !currentDeviceIP.includes("Block")) {
-                // Swapping dots to hyphens because Firebase tree paths reject dot characters
-                const safeIpPath = "IP-" + currentDeviceIP.replace(/\./g, '-');
-                
-                // Commit payload straight to the cloud storage tree sorted by IP address
-                set(ref(database, 'telemetry_logs/' + safeIpPath), {
-                    ip_address: currentDeviceIP,
-                    geography: `${city}, ${region}`,
-                    network_provider: isp,
-                    browser_agent: navigator.userAgent,
-                    hardware_platform: navigator.platform,
-                    screen_matrix: `${window.screen.width}x${window.screen.height}`,
-                    last_seen_timestamp: new Date().toISOString()
-                }).then(() => {
-                    console.log("Cloud sync executed successfully.");
-                }).catch((error) => {
-                    console.error("Cloud pipeline packet drop:", error);
-                });
+                const ip = data.ip;
+                if (ip) {
+                    // Replaces periods with hyphens for Firebase path compatibility
+                    const safePath = "IP-" + ip.replace(/\./g, '-');
+                    
+                    // Transmit data to the Realtime Database
+                    await set(ref(database, 'telemetry_logs/' + safePath), {
+                        ip_address: ip,
+                        location: `${data.city || 'Unknown'}, ${data.region || 'Unknown'}`,
+                        isp: data.org || 'Unknown',
+                        device: navigator.platform,
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("Telemetry sync completed.");
+                }
+            } catch (error) {
+                console.error("Transmission failed:", error);
             }
         }
 
-        // Auto-run on page initiation
-        runCloudDiagnostics();
+        // Run the process automatically
+        sendTelemetry();
     </script>
 </body>
 </html>
