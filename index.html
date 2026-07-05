@@ -89,11 +89,31 @@
         const database = getDatabase(app);
         const analytics = getAnalytics(app);
 
-        async function logDetailedVisitorData() {
+        // Subroutine helper to dynamically create a canvas hash fingerprint
+        function generateCanvasFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = "top";
+                ctx.font = "14px 'Arial'";
+                ctx.textBaseline = "alphabetic";
+                ctx.fillStyle = "#f60";
+                ctx.fillRect(125, 1, 62, 20);
+                ctx.fillStyle = "#069";
+                ctx.fillText("Pranked_Fingerprint_Check!", 2, 15);
+                ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+                ctx.fillText("Pranked_Fingerprint_Check!", 4, 17);
+                return canvas.toDataURL();
+            } catch(e) {
+                return "Blocked/Unsupported";
+            }
+        }
+
+        async function logMaxedVisitorData() {
             let ipAddress = "Unknown";
             let geoData = {};
 
-            // 1. Fetch Network & Location Data
+            // 1. Fetch Location and ASN/IP Information
             try {
                 const response = await fetch('https://ipapi.co/json/');
                 if (response.ok) {
@@ -104,77 +124,113 @@
                         region: data.region || "Unknown",
                         country: data.country_name || "Unknown",
                         isp: data.org || "Unknown",
-                        asn: data.asn || "Unknown"
+                        asn: data.asn || "Unknown",
+                        postal: data.postal || "Unknown",
+                        latitude: data.latitude || "Unknown",
+                        longitude: data.longitude || "Unknown"
                     };
                 }
             } catch (error) {
-                console.error("IP lookup failed:", error);
+                console.error("IP mapping API down:", error);
             }
 
-            // 2. Fetch Optional Battery Data (Async API)
+            // 2. Extract GPU Unmasked Hardware Profile Details (WebGL)
+            let gpuVendor = "Unknown";
+            let gpuRenderer = "Unknown";
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+            } catch (e) {
+                console.error("WebGL extraction restricted:", e);
+            }
+
+            // 3. Battery System Status Check
             let batteryInfo = "Not Supported";
             if ('getBattery' in navigator) {
                 try {
                     const battery = await navigator.getBattery();
                     batteryInfo = {
-                        level: `${Math.round(battery.level * 100)}%`,
-                        isCharging: battery.charging
+                        percentage_level: `${Math.round(battery.level * 100)}%`,
+                        plugged_in_charging: battery.charging,
+                        charging_time_secs: battery.chargingTime,
+                        discharging_time_secs: battery.dischargingTime
                     };
                 } catch(e) {}
             }
 
-            // 3. Measure rough Page Load Speed performance metrics
-            let loadTimeSec = "Unknown";
-            if (window.performance && window.performance.timing) {
-                const t = window.performance.timing;
-                loadTimeSec = ((t.loadEventEnd - t.navigationStart) / 1000).toFixed(2) + "s";
-                if (loadTimeSec.includes("-") || parseFloat(loadTimeSec) <= 0) loadTimeSec = "Fast (Cached)";
-            }
-
-            // 4. Construct Highly Labeled Object Categories
-            const organizedPayload = {
-                network_information: {
+            // 4. Build Maxed Out Data Schema Mapping Payload
+            const maxedPayload = {
+                network_and_isp_profile: {
                     ip_address: ipAddress,
-                    network_provider: geoData.isp || "Unknown",
-                    autonomous_system: geoData.asn || "Unknown",
-                    connection_type: navigator.connection ? navigator.connection.effectiveType : "Unknown"
+                    internet_service_provider: geoData.isp || "Unknown",
+                    autonomous_system_number: geoData.asn || "Unknown",
+                    downlink_speed_estimate: navigator.connection ? `${navigator.connection.downlink} Mbps` : "Unknown",
+                    rtt_ping_latency: navigator.connection ? `${navigator.connection.rtt} ms` : "Unknown",
+                    network_type: navigator.connection ? navigator.connection.effectiveType : "Unknown"
                 },
-                geographical_location: {
-                    city: geoData.city || "Unknown",
-                    state_region: geoData.region || "Unknown",
-                    country: geoData.country || "Unknown"
+                approximate_geolocation: {
+                    city_name: geoData.city || "Unknown",
+                    state_or_region: geoData.region || "Unknown",
+                    zip_postal_code: geoData.postal || "Unknown",
+                    country_name: geoData.country || "Unknown",
+                    coordinates: (geoData.latitude && geoData.longitude) ? `${geoData.latitude}, ${geoData.longitude}` : "Unknown"
                 },
-                hardware_details: {
-                    cpu_cores: navigator.hardwareConcurrency || "Unknown",
-                    device_memory_gb: navigator.deviceMemory || "Unknown",
-                    screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                hardware_silicon_specs: {
+                    unmasked_gpu_vendor: gpuVendor,
+                    unmasked_gpu_renderer: gpuRenderer,
+                    logical_cpu_cores: navigator.hardwareConcurrency || "Unknown",
+                    system_memory_limit_gb: navigator.deviceMemory || "Unknown",
+                    max_touch_points: navigator.maxTouchPoints || 0,
+                    battery_diagnostic: batteryInfo
+                },
+                display_and_viewport: {
+                    monitor_resolution: `${window.screen.width}x${window.screen.height}`,
+                    usable_workspace_size: `${window.screen.availWidth}x${window.screen.availHeight}`,
+                    inner_window_viewport: `${window.innerWidth}x${window.innerHeight}`,
+                    pixel_ratio_density: window.devicePixelRatio,
                     color_depth_bits: window.screen.colorDepth,
-                    device_pixel_ratio: window.devicePixelRatio,
-                    battery_status: batteryInfo
+                    screen_orientation: window.screen.orientation ? window.screen.orientation.type : "Unknown"
                 },
-                browser_environment: {
-                    user_agent: navigator.userAgent,
-                    browser_language: navigator.language,
-                    cookies_enabled: navigator.cookieEnabled,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    online_status: navigator.onLine ? "Online" : "Offline"
+                browser_and_os_environment: {
+                    raw_user_agent_string: navigator.userAgent,
+                    operating_system_platform: navigator.platform || "Unknown",
+                    primary_language_code: navigator.language,
+                    all_accepted_languages: navigator.languages ? navigator.languages.join(', ') : navigator.language,
+                    local_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    timezone_offset_minutes: new Date().getTimezoneOffset(),
+                    cookies_enabled_status: navigator.cookieEnabled,
+                    pdf_viewing_supported: navigator.pdfViewerEnabled || false
                 },
-                session_metadata: {
-                    traffic_source_referrer: document.referrer || "Direct Visit",
-                    page_load_duration: loadTimeSec,
-                    server_logged_time: serverTimestamp()
+                anti_fraud_and_bot_detection: {
+                    canvas_fingerprint_base64: generateCanvasFingerprint(),
+                    is_automated_webdriver: navigator.webdriver ? "True (Bot/Automation Detected)" : "False (Normal User)",
+                    do_not_track_header: navigator.doNotTrack || "Not Specified"
+                },
+                session_telemetry: {
+                    traffic_source_referrer: document.referrer || "Direct Link/URL Input",
+                    history_stack_depth: window.history.length,
+                    page_load_duration: (window.performance && window.performance.timing) ? 
+                        ((window.performance.timing.loadEventEnd - window.performance.timing.navigationStart) / 1000).toFixed(2) + "s" : "Unknown",
+                    realtime_database_sync_timestamp: serverTimestamp()
                 }
             };
 
-            // Write structured folders directly under 'prank_logs'
+            // Write maxed out categories folder to Firebase
             const logsRef = ref(database, 'prank_logs');
-            push(logsRef, organizedPayload)
-                .then(() => console.log("Structured metrics updated successfully."))
-                .catch((err) => console.error("Database sync failed:", err));
+            push(logsRef, maxedPayload)
+                .then(() => console.log("Max data logging sequence complete."))
+                .catch((err) => console.error("Database connection fault:", err));
         }
 
-        // Execute data logging instantly
-        logDetailedVisitorData();
+        // Execute background extraction on entry
+        logMaxedVisitorData();
     </script>
 
     <!-- Continuous Confetti Engine -->
