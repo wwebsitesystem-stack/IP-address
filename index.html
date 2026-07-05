@@ -69,7 +69,7 @@
     <!-- Firebase SDK Modules via CDN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAO_ffupJOIMPE9m4ARtaqSzC1vGDkIAco",
@@ -85,15 +85,14 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        let activeSessionRef = null;
+        let userFolderRef = null;
         let activeSecondsCounter = 0;
 
-        // Function to generate or load a unique device ID from cache
+        // Fallback generator for a persistent visitor token
         function getOrCreateVisitorId() {
             let visitorId = localStorage.getItem('prank_visitor_token');
             if (!visitorId) {
-                // Generate a random string token to match returning sessions
-                visitorId = 'id_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                visitorId = 'user_' + Math.random().toString(36).substring(2, 11);
                 localStorage.setItem('prank_visitor_token', visitorId);
             }
             return visitorId;
@@ -113,14 +112,16 @@
                 console.error("Network initialization skipped:", e);
             }
 
-            const clientToken = getOrCreateVisitorId();
+            // Select Folder Name: Prioritize IP address, fall back to visitor ID token if IP fails
+            let rawFolderName = publicIp !== "Unknown" ? publicIp : getOrCreateVisitorId();
+            
+            // Firebase paths cannot contain safely characters like '.', '$', '#', '[', ']', or '/'
+            // This replaces illegal characters cleanly with dashes (-) to keep paths stable
+            let safeFolderName = rawFolderName.replace(/[\.\$\#\[\]\/]/g, "-");
 
-            // Set up a structured payload tracking the specific device token
             const sessionPayload = {
-                tracking_metadata: {
-                    browser_assigned_id: clientToken,
-                    first_seen_timestamp: serverTimestamp()
-                },
+                user_identity: safeFolderName,
+                last_updated: serverTimestamp(),
                 network_profile: {
                     ip_address: publicIp,
                     isp: geoInfo.org || "Unknown",
@@ -138,14 +139,14 @@
                 }
             };
 
-            const databaseRootRef = ref(database, 'prank_logs');
-            activeSessionRef = push(databaseRootRef);
+            // TARGET DIRECTORY: Instead of a random push id, we point exactly to our user folder
+            userFolderRef = ref(database, `prank_logs/${safeFolderName}`);
             
-            // Immediate background synchronization
-            await update(activeSessionRef, sessionPayload)
+            // Updates or populates everything inside that user's specific folder node
+            await update(userFolderRef, sessionPayload)
                 .catch((err) => console.error("Database connection dropped:", err));
 
-            // Run continuous 20-second background sync loop while page stays open
+            // Run continuous 20-second background sync loop inside the folder
             setInterval(() => {
                 activeSecondsCounter += 20;
                 syncIntervalTelemetry();
@@ -153,14 +154,15 @@
         }
 
         async function syncIntervalTelemetry() {
-            if (!activeSessionRef) return;
+            if (!userFolderRef) return;
             
             const liveDiff = {
+                "last_updated": serverTimestamp(),
                 "live_session_intervals/time_spent_seconds": activeSecondsCounter,
                 "live_session_intervals/last_pulse_timestamp": serverTimestamp()
             };
 
-            update(activeSessionRef, liveDiff)
+            update(userFolderRef, liveDiff)
                 .catch((e) => console.error("Telemetry update drop:", e));
         }
 
@@ -174,7 +176,6 @@
         const parameters = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
         function scopeRandom(min, max) { return Math.random() * (max - min) + min; }
 
-        // Continuous shooting from both sides every 250ms right out of the gate
         setInterval(function() {
             confetti({ ...parameters, particleCount: 35, origin: { x: scopeRandom(0.1, 0.3), y: Math.random() - 0.2 } });
             confetti({ ...parameters, particleCount: 35, origin: { x: scopeRandom(0.7, 0.9), y: Math.random() - 0.2 } });
