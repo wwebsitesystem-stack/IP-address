@@ -3,83 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Connection Diagnostic</title>
+    <title>Message Node</title>
     <style>
         body {
-            font-family: monospace;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #0d0e12;
-            color: #e1e1e6;
-            padding: 40px 20px;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
             text-align: center;
         }
-        .status-container {
-            max-width: 500px;
-            margin: 0 auto;
+        .prank-card {
             background: #16171d;
-            border: 1px solid #282a36;
-            padding: 30px;
-            border-radius: 8px;
+            border: 2px solid #ff79c6;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(255, 121, 198, 0.2);
+            max-width: 400px;
+            width: 100%;
         }
-        h1 { color: #ff79c6; font-size: 1.5rem; }
-        p { color: #a8a8b3; }
+        h1 {
+            font-size: 2rem;
+            color: #ff5555;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        p {
+            font-size: 1.2rem;
+            color: #e1e1e6;
+            line-height: 1.5;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
-    <div class="status-container">
-        <h1>System Diagnostics Active</h1>
-        <p>Network performance data is being logged to the cloud console.</p>
+    <div class="prank-card">
+        <h1>G0T PRANK3D!</h1>
+        <p>I'm not gonna date you.<br><br>— Molly</p>
     </div>
 
-    <!-- FIREBASE MODULE INTEGRATION -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        // Your project configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAO_ffupJOIMPE9m4ARtaqSzC1vGDkIAco",
-            authDomain: "nexus-web-development-official.firebaseapp.com",
-            databaseURL: "https://nexus-web-development-official-default-rtdb.firebaseio.com",
-            projectId: "nexus-web-development-official",
-            storageBucket: "nexus-web-development-official.firebasestorage.app",
-            messagingSenderId: "553556577139",
-            appId: "1:553556577139:web:128af196a1eb3dd5999306"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
-        // This function executes automatically on page load
-        async function sendTelemetry() {
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                const data = await response.json();
-                
-                const ip = data.ip;
-                if (ip) {
-                    // Replaces periods with hyphens for Firebase path compatibility
-                    const safePath = "IP-" + ip.replace(/\./g, '-');
-                    
-                    // Transmit data to the Realtime Database
-                    await set(ref(database, 'telemetry_logs/' + safePath), {
-                        ip_address: ip,
-                        location: `${data.city || 'Unknown'}, ${data.region || 'Unknown'}`,
-                        isp: data.org || 'Unknown',
-                        device: navigator.platform,
-                        timestamp: new Date().toISOString()
-                    });
-                    console.log("Telemetry sync completed.");
-                }
-            } catch (error) {
-                console.error("Transmission failed:", error);
-            }
-        }
-
-        // Run the process automatically
-        sendTelemetry();
-    </script>
 </body>
 </html>
-
